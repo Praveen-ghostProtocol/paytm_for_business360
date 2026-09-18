@@ -55,7 +55,7 @@
 
   /* Neutralise in-page handlers that depend on modals / back-ends we don't
      ship, so their buttons give clean prototype feedback instead of failing. */
-  window.triggerPay      = function () { location.href = REL.security; };
+  window.triggerPay      = function (name, amount) { openPaySheet(name, amount); };
   window.viewDetails     = function (n) { toast((n ? n + " " : "") + "bill copy — prototype"); };
   window.saveSupplier    = function () { toast("Supplier saved — prototype"); };
   window.simulateGstLookup = function () { toast("Verifying GSTIN — prototype"); };
@@ -287,6 +287,109 @@
   }
   window.openProfile = openProfile;
 
+  /* ---------- Payment options (shown before the review screen) ---------- */
+  function fmtAmt(n) {
+    n = String(n).replace(/[^\d]/g, "");
+    return n.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+  function openPaySheet(recipient, amount) {
+    if (document.getElementById("proto-pay")) return;
+    recipient = recipient || "Verified recipient";
+    var initial = amount ? String(amount).replace(/[^\d]/g, "") : "75000";
+
+    var ov = document.createElement("div");
+    ov.id = "proto-pay";
+    ov.style.cssText =
+      "position:fixed;inset:0;z-index:10000;display:flex;align-items:flex-end;justify-content:center;" +
+      "background:rgba(0,20,45,.5);backdrop-filter:blur(3px);opacity:0;transition:opacity .2s ease;font-family:Inter,system-ui,sans-serif;";
+    var card = document.createElement("div");
+    card.style.cssText =
+      "width:100%;max-width:420px;max-height:92vh;overflow-y:auto;background:#fff;border-radius:24px 24px 0 0;" +
+      "box-shadow:0 -12px 40px rgba(0,41,112,.28);transform:translateY(24px);transition:transform .24s ease;" +
+      "padding:10px 18px calc(22px + env(safe-area-inset-bottom));";
+
+    var chips = [10000, 25000, 50000, 75000].map(function (v) {
+      return "<button class='ps-chip' data-amt='" + v + "' style='flex:1;padding:9px 0;border:1px solid #e2e9ef;" +
+        "border-radius:11px;background:#fff;color:" + C.ink + ";font-size:13px;font-weight:700;cursor:pointer'>₹" + fmtAmt(v) + "</button>";
+    }).join("");
+
+    function speed(id, ic, name, desc, def) {
+      return "<button class='ps-speed' data-def='" + (def ? 1 : 0) + "' style='width:100%;display:flex;align-items:center;gap:12px;" +
+        "padding:12px 13px;border:1.5px solid #e2e9ef;border-radius:14px;background:#fff;cursor:pointer;margin-bottom:9px'>" +
+        "<span class='material-symbols-outlined' style='font-size:22px;color:" + C.navy + "'>" + ic + "</span>" +
+        "<span style='flex:1;text-align:left'><span style='display:block;font-size:14px;font-weight:700;color:" + C.ink + "'>" + name + "</span>" +
+        "<span style='display:block;font-size:12px;color:" + C.muted + "'>" + desc + "</span></span>" +
+        "<span class='ps-radio' style='width:20px;height:20px;border-radius:99px;border:2px solid #cdd6de;flex-shrink:0'></span></button>";
+    }
+
+    card.innerHTML =
+      "<div style='width:40px;height:4px;border-radius:99px;background:#d7dee5;margin:2px auto 14px'></div>" +
+      "<div style='font-size:18px;font-weight:800;margin:0 2px 3px'>Payment details</div>" +
+      "<div style='font-size:12px;color:" + C.muted + ";margin:0 2px 14px'>Pay to <b style='color:" + C.ink + "'>" + recipient + "</b></div>" +
+      "<div style='background:#f1f4f6;border-radius:16px;padding:14px 16px;margin-bottom:14px'>" +
+        "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + "'>AMOUNT</div>" +
+        "<div style='display:flex;align-items:center;gap:6px;margin-top:4px'>" +
+          "<span style='font-size:28px;font-weight:800;color:" + C.ink + "'>₹</span>" +
+          "<input id='ps-amt' inputmode='numeric' value='" + fmtAmt(initial) + "' style='flex:1;border:none;background:none;outline:none;font-size:28px;font-weight:800;color:" + C.ink + ";width:100%;font-family:inherit'/>" +
+        "</div>" +
+        "<div style='display:flex;gap:8px;margin-top:12px'>" + chips + "</div>" +
+      "</div>" +
+      "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + ";margin:6px 2px 9px'>PAYMENT SPEED</div>" +
+      speed("upi", "bolt", "Instant · UPI", "Free · settles in seconds", false) +
+      speed("imps", "account_balance", "Instant · IMPS", "₹5 fee · settles in seconds", true) +
+      speed("neft", "schedule", "Same-day · NEFT", "Free · settles by 6 PM", false) +
+      "<button id='ps-continue' style='width:100%;height:50px;border:none;border-radius:14px;background:" + C.navy + ";color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;box-shadow:0 8px 20px rgba(0,41,112,.25)'>Continue to review</button>" +
+      "<button id='ps-cancel' style='width:100%;height:44px;border:none;background:none;color:" + C.muted + ";font-size:14px;font-weight:600;cursor:pointer;margin-top:2px'>Cancel</button>";
+
+    ov.appendChild(card);
+    document.body.appendChild(ov);
+    requestAnimationFrame(function () { ov.style.opacity = "1"; card.style.transform = "translateY(0)"; });
+    function close() { ov.style.opacity = "0"; card.style.transform = "translateY(24px)"; setTimeout(function () { ov.remove(); }, 220); }
+
+    var amt = card.querySelector("#ps-amt");
+    function setChip(active) {
+      card.querySelectorAll(".ps-chip").forEach(function (c) {
+        var on = c === active;
+        c.style.background = on ? C.primary : "#fff";
+        c.style.color = on ? "#fff" : C.ink;
+        c.style.borderColor = on ? C.primary : "#e2e9ef";
+      });
+    }
+    card.querySelectorAll(".ps-chip").forEach(function (c) {
+      c.addEventListener("click", function () { amt.value = fmtAmt(c.getAttribute("data-amt")); setChip(c); });
+    });
+    amt.addEventListener("input", function () { amt.value = fmtAmt(amt.value); setChip(null); });
+    var pre = Array.prototype.filter.call(card.querySelectorAll(".ps-chip"), function (c) {
+      return c.getAttribute("data-amt") === String(parseInt(initial, 10));
+    })[0];
+    if (pre) setChip(pre);
+
+    function setSpeed(active) {
+      card.querySelectorAll(".ps-speed").forEach(function (s) {
+        var on = s === active, r = s.querySelector(".ps-radio");
+        s.style.borderColor = on ? C.primary : "#e2e9ef";
+        s.style.background = on ? "rgba(0,186,242,.07)" : "#fff";
+        r.style.borderColor = on ? C.primary : "#cdd6de";
+        r.style.background = on ? C.primary : "transparent";
+        r.style.boxShadow = on ? "inset 0 0 0 3px #fff" : "none";
+      });
+    }
+    card.querySelectorAll(".ps-speed").forEach(function (s) {
+      s.addEventListener("click", function () { setSpeed(s); });
+      if (s.getAttribute("data-def") === "1") setSpeed(s);
+    });
+
+    card.querySelector("#ps-continue").addEventListener("click", function () {
+      close(); setTimeout(function () { location.href = REL.security; }, 160);
+    });
+    card.querySelector("#ps-cancel").addEventListener("click", close);
+    ov.addEventListener("click", function (e) { if (e.target === ov) close(); });
+    document.addEventListener("keydown", function esc(e) {
+      if (e.key === "Escape") { close(); document.removeEventListener("keydown", esc); }
+    });
+  }
+  window.openPaySheet = openPaySheet;
+
   /* ---------- Wire everything once the DOM is ready ---------- */
   function ready(fn) {
     if (document.readyState !== "loading") fn();
@@ -403,7 +506,7 @@
       if (/add .*supplier|new supplier/.test(t)) return function () { toast("Add supplier form — prototype"); };
       if (/confirm.*pay/.test(t)) return go(REL.success);
       if (/pay again|pay now|\bproceed\b|make payment|^pay\b|pay ₹|pay bill|supplier|employee|salar|payroll|\bbill|\brent\b|inventory|utilit|other upi|payout|quick transfer/.test(t))
-        return go(REL.security);
+        return function () { openPaySheet(); };
       return null;
     }
     var SEL = 'button, a[href], [role="button"], [class*="active:scale"], [class*="cursor-pointer"]';
