@@ -100,10 +100,18 @@
   }
 
   /* ---------- QR modal ---------- */
+  window.protoCopy = function (t) { try { navigator.clipboard.writeText(t); } catch (e) {} toast("Copied: " + t); };
+
   function showQR() {
     if (document.getElementById("proto-qr")) return;
     var ov = document.createElement("div");
     ov.id = "proto-qr";
+    function copyLine(k, v) {
+      return "<div style='display:flex;align-items:center;justify-content:space-between;padding:5px 0'>" +
+        "<div><div style='font-size:10px;color:" + C.muted + ";font-weight:600'>" + k + "</div>" +
+        "<div style='font-size:14px;font-weight:700;color:" + C.ink + "'>" + v + "</div></div>" +
+        "<button onclick=\"protoCopy('" + v + "')\" style='width:30px;height:30px;border:none;border-radius:8px;background:#fff;color:" + C.navy + ";cursor:pointer'><span class='material-symbols-outlined' style='font-size:18px'>content_copy</span></button></div>";
+    }
     ov.style.cssText =
       "position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;" +
       "padding:24px;background:rgba(0,20,45,.55);backdrop-filter:blur(4px);" +
@@ -124,9 +132,10 @@
           "<div style='display:inline-block;padding:12px;border-radius:16px;border:1px solid #E2E9EF;box-shadow:0 6px 18px rgba(0,41,112,.08)'>" +
             qrSvg() +
           "</div>" +
-          "<div style='margin-top:14px;font-size:13px;color:" + C.muted + "'>UPI ID</div>" +
-          "<div style='font-size:15px;font-weight:700;color:" + C.ink + "'>sharmastore@paytm</div>" +
-          "<div style='display:flex;align-items:center;justify-content:center;gap:6px;margin:14px 0 4px;color:" + C.green + ";font-size:12px;font-weight:700'>" +
+          "<div style='margin-top:14px;text-align:left;background:#f1f4f6;border-radius:12px;padding:8px 12px'>" +
+            copyLine("UPI ID", "sharmastore@paytm") + copyLine("A/C Number", "5010 0441 2909") + copyLine("IFSC", "HDFC0000123") +
+          "</div>" +
+          "<div style='display:flex;align-items:center;justify-content:center;gap:6px;margin:12px 0 4px;color:" + C.green + ";font-size:12px;font-weight:700'>" +
             "<span>●</span> Accepting payments</div>" +
         "</div>" +
         "<div style='padding:8px 20px 22px'>" +
@@ -241,10 +250,14 @@
         tile("speaker", "Devices", "data-open='openDevices'") +
         tile("groups", "Staff", "data-toast='Staff and Roles — prototype'") +
         tile("support_agent", "Help", "data-open='openSupport'") +
-        tile("menu_book", "Khata", "data-open='openKhata'") +
+        tile("menu_book", "Ledger", "data-open='openKhata'") +
         tile("trending_up", "Cash-flow", "data-open='openForecast'") +
+        tile("bar_chart", "Analytics", "data-open='openAnalytics'") +
         tile("link", "Pay Link", "data-open='openPaymentLink'") +
         tile("storefront", "Suppliers", "data-open='openMarketplace'") +
+        tile("school", "Learn", "data-open='openTutorials'") +
+        tile("receipt_long", "Records", "data-open='goRecords'") +
+        tile("qr_code_scanner", "Scan QR", "data-open='showQR'") +
       "</div>";
     var rows =
       row("person", "My Profile", "data-profile") +
@@ -259,6 +272,11 @@
     var html =
       "<div style='font-size:18px;font-weight:800;margin:0 2px 2px'>Pre-approved Business Loan</div>" +
       "<div style='font-size:12px;color:" + C.muted + ";margin:0 2px 16px'>Based on 18 months of your Paytm settlements</div>" +
+      "<div style='background:#f1f4f6;border-radius:14px;padding:12px 14px;margin-bottom:12px'>" +
+        "<div style='font-size:11px;font-weight:700;letter-spacing:.05em;color:" + C.muted + "'>LOAN AMOUNT NEEDED</div>" +
+        "<div style='display:flex;align-items:center;gap:6px;margin-top:4px'><span style='font-size:24px;font-weight:800;color:" + C.ink + "'>₹</span>" +
+        "<input inputmode='numeric' value='3,00,000' oninput=\"this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')\" style='flex:1;border:none;background:none;outline:none;font-size:24px;font-weight:800;color:" + C.ink + ";width:100%;font-family:inherit'/></div>" +
+        "<div style='font-size:11px;color:" + C.muted + ";margin-top:2px'>Eligible up to ₹5,00,000</div></div>" +
       "<div style='background:#f1f4f6;border-radius:16px;padding:6px 16px;margin-bottom:14px'>" +
         stat("Eligible amount", "&#8377;5,00,000") +
         stat("Interest rate", "14% p.a. reducing") +
@@ -465,9 +483,10 @@
     ].map(function (r) {
       return row(r[0], r[1], "data-open='openDisputeCase' data-arg=\"" + r[1] + "\"");
     }).join("");
+    var hotline = row("call", "Call support hotline · urgent issues", "data-toast='Calling 1800-120-4321 — prototype'", C.green);
     var chat = row("support_agent", "Chat with support (EN / हिंदी / +8 languages)",
       "data-toast='Connecting you to a support agent — prototype'");
-    openSheet("<div style='font-size:18px;font-weight:800;margin:0 2px 14px'>Help &amp; Support</div>" + priority + reasons + chat);
+    openSheet("<div style='font-size:18px;font-weight:800;margin:0 2px 14px'>Help &amp; Support</div>" + priority + hotline + reasons + chat);
   }
   window.openSupport = openSupport;
 
@@ -517,6 +536,15 @@
         "<span class='material-symbols-outlined' style='color:" + C.primary + ";font-size:22px'>event_upcoming</span>" +
         "<div><div style='font-size:13px;font-weight:700;color:" + C.ink + "'>Next charge · 1 Oct 2026 · ₹125</div>" +
         "<div style='font-size:11.5px;color:" + C.muted + "'>Rental ₹125/mo incl. GST · WhatsApp + SMS alert 3 days before</div></div></div>";
+    function feeRow(k, v, bold) {
+      return "<div style='display:flex;justify-content:space-between;padding:7px 0;" + (bold ? "" : "border-bottom:1px solid #e3e8ec") + "'>" +
+        "<span style='font-size:13px;color:" + (bold ? C.ink : C.muted) + ";font-weight:" + (bold ? "800" : "400") + "'>" + k + "</span>" +
+        "<span style='font-size:13px;font-weight:" + (bold ? "800" : "600") + ";color:" + C.ink + "'>" + v + "</span></div>";
+    }
+    var breakdown =
+      "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + ";margin:2px 2px 4px'>CHARGE BREAKDOWN</div>" +
+      "<div style='background:#f1f4f6;border-radius:14px;padding:4px 15px;margin-bottom:14px'>" +
+        feeRow("Rental (base)", "₹105.93") + feeRow("GST (18%)", "₹19.07") + feeRow("Monthly total", "₹125.00", true) + "</div>";
     var ledgerRows = [["Sep 2026", "Paid"], ["Aug 2026", "Paid"], ["Jul 2026", "Paid"], ["Jun 2026", "Paid · setup"]].map(function (m) {
       return "<div style='display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eef1f3'>" +
         "<span style='font-size:13px;color:" + C.ink + ";font-weight:600'>" + m[0] + "</span>" +
@@ -524,7 +552,7 @@
         "<span style='font-size:11px;font-weight:700;color:" + C.green + ";background:rgba(22,163,74,.12);padding:3px 8px;border-radius:99px'>" + m[1] + "</span></span></div>";
     }).join("");
     var html =
-      "<div style='font-size:18px;font-weight:800;margin:0 2px 14px'>My Devices</div>" + device + nextCharge +
+      "<div style='font-size:18px;font-weight:800;margin:0 2px 14px'>My Devices</div>" + device + nextCharge + breakdown +
       "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + ";margin:2px 2px 4px'>RENTAL LEDGER</div>" +
       "<div style='margin-bottom:14px'>" + ledgerRows + "</div>" +
       "<button data-open='openCancelDevice' style='width:100%;height:48px;border:1.5px solid #ba1a1a;border-radius:13px;background:#fff;color:#ba1a1a;font-size:15px;font-weight:700;cursor:pointer'>Cancel rental · one tap</button>" +
@@ -616,17 +644,20 @@
         "<div style='flex:1;min-width:0'><div style='font-size:14px;font-weight:700;color:" + C.ink + ";display:flex;align-items:center;gap:6px'>" + c[0] + " " + badge + "</div>" +
         "<div style='font-size:12px;color:" + C.muted + "'>" + c[1] + "</div></div>" +
         "<div style='text-align:right;flex-shrink:0'><div style='font-size:14px;font-weight:800;color:" + C.ink + "'>₹" + fmtAmt(c[2]) + "</div>" +
-        "<button data-toast=\"WhatsApp reminder sent to " + c[0] + " — prototype\" style='font-size:11px;font-weight:700;color:" + C.green + ";background:none;border:none;cursor:pointer;padding:2px 0'>Remind →</button></div></div>";
+        "<div style='display:flex;gap:10px;justify-content:flex-end;margin-top:2px'>" +
+          "<button data-toast=\"Edit " + c[0] + " — prototype\" style='font-size:11px;font-weight:700;color:" + C.navy + ";background:none;border:none;cursor:pointer;padding:0'>Edit</button>" +
+          "<button data-toast=\"WhatsApp reminder sent to " + c[0] + " — prototype\" style='font-size:11px;font-weight:700;color:" + C.green + ";background:none;border:none;cursor:pointer;padding:0'>Remind</button>" +
+        "</div></div></div>";
     }).join("");
     var summary = "<div style='background:linear-gradient(135deg," + C.navy + "," + C.primary + ");border-radius:18px;padding:16px;color:#fff;margin-bottom:14px'>" +
       "<div style='font-size:11px;font-weight:700;letter-spacing:.07em;opacity:.9'>YOU'LL RECEIVE</div>" +
       "<div style='font-size:28px;font-weight:800;margin-top:4px'>₹" + fmtAmt(total) + "</div>" +
       "<div style='font-size:12px;opacity:.92;margin-top:2px'>from " + customers.length + " credit customers</div></div>";
-    var html = "<div style='font-size:18px;font-weight:800;margin:0 2px 14px'>Business Khata</div>" + summary +
+    var html = "<div style='font-size:18px;font-weight:800;margin:0 2px 14px'>Business Ledger</div>" + summary +
       "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + ";margin:2px 2px 0'>CUSTOMERS WHO OWE YOU</div>" +
       "<div style='margin-bottom:14px'>" + rows + "</div>" +
       "<button data-toast='WhatsApp reminders sent to all 5 customers — prototype' style='width:100%;height:48px;border:none;border-radius:13px;background:" + C.navy + ";color:#fff;font-size:15px;font-weight:700;cursor:pointer'>Send reminders to all · WhatsApp</button>" +
-      "<button data-toast='Add khata entry — prototype' style='width:100%;height:44px;border:1.5px solid #e2e9ef;border-radius:13px;background:#fff;color:" + C.navy + ";font-size:14px;font-weight:700;cursor:pointer;margin-top:8px'>+ Add khata entry</button>";
+      "<button data-toast='Add ledger entry — prototype' style='width:100%;height:44px;border:1.5px solid #e2e9ef;border-radius:13px;background:#fff;color:" + C.navy + ";font-size:14px;font-weight:700;cursor:pointer;margin-top:8px'>+ Add ledger entry</button>";
     openSheet(html);
   }
   window.openKhata = openKhata;
@@ -670,10 +701,67 @@
   }
   function insightCardsHtml() {
     return iCard("#ba1a1a", "trending_down", "Footfall", "Tuesday walk-ins down 20% vs last month", "See why", "data-open='openFootfall'") +
-      iCard(C.navy, "account_balance_wallet", "Receivables", "₹48,500 owed by 5 credit customers", "Open Khata", "data-open='openKhata'") +
+      iCard(C.navy, "account_balance_wallet", "Receivables", "₹48,500 owed by 5 credit customers", "Open Ledger", "data-open='openKhata'") +
       iCard(C.green, "trending_up", "Cash-flow", "+₹90,000 projected net this month", "View forecast", "data-open='openForecast'") +
       iCard("#8a6d00", "description", "Compliance", "GST filing due in 6 days", "Set reminder", "data-toast='GST reminder set — prototype'");
   }
+
+  /* ---------- Detailed analytics ---------- */
+  function openAnalytics() {
+    function kpi(k, v, d) {
+      return "<div style='flex:1;background:#f1f4f6;border-radius:12px;padding:11px 12px'>" +
+        "<div style='font-size:11px;color:" + C.muted + ";font-weight:600'>" + k + "</div>" +
+        "<div style='font-size:17px;font-weight:800;color:" + C.ink + ";margin-top:1px'>" + v + "</div>" +
+        "<div style='font-size:11px;font-weight:700;color:" + C.green + "'>" + d + "</div></div>";
+    }
+    var trend = [{ label: "Mon", v: 52 }, { label: "Tue", v: 38 }, { label: "Wed", v: 61 }, { label: "Thu", v: 58 }, { label: "Fri", v: 72 }, { label: "Sat", v: 88 }, { label: "Sun", v: 47 }];
+    var mix = [{ label: "UPI", value: 68, color: C.primary }, { label: "Card", value: 18, color: C.navy }, { label: "Cash", value: 9, color: "#8a6d00" }, { label: "Wallet", value: 5, color: C.green }];
+    var products = [["Basmati Rice 25kg", "₹68,400", "+18%"], ["Cooking Oil 15L", "₹42,100", "+9%"], ["Wheat Flour 50kg", "₹31,500", "-4%"], ["Sugar 25kg", "₹22,800", "+6%"]];
+    var prodRows = products.map(function (p) {
+      return "<div style='display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #eef1f3'>" +
+        "<span style='font-size:13px;font-weight:600;color:" + C.ink + "'>" + p[0] + "</span>" +
+        "<span style='display:flex;gap:8px;align-items:center'><span style='font-size:13px;font-weight:700'>" + p[1] + "</span>" +
+        "<span style='font-size:11px;font-weight:700;color:" + (p[2].indexOf("-") > -1 ? "#ba1a1a" : C.green) + "'>" + p[2] + "</span></span></div>";
+    }).join("");
+    var html =
+      "<div style='font-size:18px;font-weight:800;margin:0 2px 12px'>Analytics</div>" +
+      "<div style='display:flex;gap:10px;margin-bottom:10px'>" + kpi("Sales (30d)", "₹3.84L", "+12%") + kpi("Orders", "142", "+8%") + "</div>" +
+      "<div style='display:flex;gap:10px;margin-bottom:14px'>" + kpi("Avg ticket", "₹2,704", "+3%") + kpi("Repeat buyers", "38%", "+5%") + "</div>" +
+      "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + ";margin:2px 2px 6px'>SALES TREND · LAST 7 DAYS</div>" +
+      "<div style='background:#f1f4f6;border-radius:16px;padding:10px 8px 4px;margin-bottom:14px'>" + lineChart(trend, 320, 120) + "</div>" +
+      "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + ";margin:2px 2px 6px'>PAYMENT MIX (%)</div>" +
+      "<div style='background:#f1f4f6;border-radius:16px;padding:12px 8px 4px;margin-bottom:14px'>" + barChart(mix, 320, 120) + "</div>" +
+      "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + ";margin:2px 2px 4px'>TOP PRODUCTS</div>" +
+      "<div style='margin-bottom:14px'>" + prodRows + "</div>" +
+      "<div style='display:flex;align-items:center;gap:9px;background:rgba(0,186,242,.08);border-radius:12px;padding:11px 13px;margin-bottom:14px'>" +
+        "<span class='material-symbols-outlined' style='color:" + C.primary + ";font-size:20px'>schedule</span>" +
+        "<span style='font-size:12.5px;color:" + C.ink + ";font-weight:600'>Peak hours: 6–9 PM · 41% of daily sales</span></div>" +
+      "<button data-toast='Full report exported — prototype' style='width:100%;height:46px;border:none;border-radius:13px;background:" + C.navy + ";color:#fff;font-size:15px;font-weight:700;cursor:pointer'>Export full report</button>";
+    openSheet(html);
+  }
+  window.openAnalytics = openAnalytics;
+
+  /* ---------- Tutorials (regional languages) ---------- */
+  function openTutorials() {
+    var vids = [
+      ["Accept your first UPI payment", "हिंदी · 2:14"],
+      ["Set up your Soundbox", "தமிழ் · 3:05"],
+      ["Using the Business Ledger", "हिंदी · 1:48"],
+      ["Apply for a business loan", "తెలుగు · 2:39"],
+      ["Reconcile & file GST", "বাংলা · 4:12"]
+    ];
+    var rows = vids.map(function (v) {
+      return "<button data-toast=\"Playing: " + v[0] + " — prototype\" style='width:100%;display:flex;align-items:center;gap:12px;padding:12px 4px;border:none;border-bottom:1px solid #eef1f3;background:none;cursor:pointer;text-align:left'>" +
+        "<span style='width:40px;height:40px;border-radius:10px;background:rgba(0,186,242,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0'><span class='material-symbols-outlined' style='color:" + C.primary + ";font-size:24px'>play_circle</span></span>" +
+        "<span style='flex:1'><span style='display:block;font-size:14px;font-weight:700;color:" + C.ink + "'>" + v[0] + "</span><span style='display:block;font-size:12px;color:" + C.muted + "'>" + v[1] + "</span></span>" +
+        "<span class='material-symbols-outlined' style='color:#b7c2cc'>chevron_right</span></button>";
+    }).join("");
+    openSheet("<div style='font-size:18px;font-weight:800;margin:0 2px 2px'>Learn</div>" +
+      "<div style='font-size:12px;color:" + C.muted + ";margin:0 2px 12px'>Guided video tutorials in your language</div>" + rows +
+      "<button data-toast='More tutorials in 10 languages — prototype' style='width:100%;height:44px;border:1.5px solid #e2e9ef;border-radius:13px;background:#fff;color:" + C.navy + ";font-size:14px;font-weight:700;cursor:pointer;margin-top:12px'>Browse all languages</button>");
+  }
+  window.openTutorials = openTutorials;
+  window.goRecords = function () { location.href = REL.records; };
 
   /* ---------- Rewards & tier ---------- */
   function openRewards() {
@@ -796,6 +884,9 @@
       }
     });
 
+    /* 3 bottom tabs only: hide Collect & Records (reachable from Home tiles / More) */
+    document.querySelectorAll('[data-path="collect"],[data-path="records"]').forEach(function (a) { a.style.display = "none"; });
+
     /* 1b. "More" tab -> More menu (with pre-approved loans) */
     document.querySelectorAll('[data-path="more"]').forEach(function (el) {
       el.removeAttribute("href");
@@ -833,6 +924,13 @@
         block.querySelectorAll("[data-toast]").forEach(function (el) {
           el.dataset.proto = "1";
           el.addEventListener("click", function () { toast(el.getAttribute("data-toast")); });
+        });
+        /* cleaner Home: drop sections the More tab / Devices already cover */
+        ["Pay Your Business", "Soundbox"].forEach(function (t) {
+          for (var i = 0; i < mainWrap.children.length; i++) {
+            var ch = mainWrap.children[i];
+            if (ch !== block && ch.textContent.indexOf(t) > -1) { ch.style.display = "none"; break; }
+          }
         });
       }
     }
