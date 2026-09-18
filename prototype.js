@@ -345,6 +345,52 @@
       });
     }
 
+    /* 2b. Add-supplier modal: make the GSTIN / Bank / UPI tabs switch,
+           and keep the router from double-handling the modal's controls. */
+    var sm = document.getElementById("supplierModal");
+    if (sm) {
+      var cfg = {
+        "GSTIN Number": { label: "Enter Business GSTIN", val: "07AABCB1234F1Z5", up: true,
+          sub: "Trade Name: Bharat Flour Mills • New Delhi", msg: "GSTIN 07AABCB1234F1Z5 Active & Verified" },
+        "Bank Account": { label: "Enter Account Number & IFSC", val: "5010 0441 2909 / HDFC0000123", up: false,
+          sub: "HDFC Bank • A/C ••9087 • Penny-drop verified", msg: "Bank account verified — Bharat Agro Foods" },
+        "UPI VPA": { label: "Enter UPI ID (VPA)", val: "bharatagro@okhdfcbank", up: false,
+          sub: "bharatagro@okhdfcbank • Verified on UPI", msg: "UPI ID verified — Bharat Agro Foods" }
+      };
+      /* keep the router away from every control inside the modal + its opener */
+      sm.querySelectorAll("button, input").forEach(function (n) { n.dataset.proto = "1"; });
+      var opener = document.getElementById("openAddSupplierBtn");
+      if (opener) opener.dataset.proto = "1";
+
+      var lbl = sm.querySelector("label");
+      var inp = sm.querySelector("#gstinInput") || sm.querySelector("input");
+      var preview = sm.querySelector("#verifiedPreviewCard");
+      var previewSub = preview ? preview.querySelectorAll("span")[1] : null;
+      var tabBtns = Array.prototype.filter.call(sm.querySelectorAll("button"), function (b) {
+        return cfg[b.textContent.trim()];
+      });
+      var verifyMsg = cfg["GSTIN Number"].msg;
+      /* the modal's Verify button calls simulateGstLookup() -> reflect the active tab */
+      window.simulateGstLookup = function () { toast(verifyMsg); };
+
+      function activateTab(btn) {
+        var c = cfg[btn.textContent.trim()];
+        if (!c) return;
+        tabBtns.forEach(function (t) {
+          t.className = "py-1.5 rounded-md font-label-sm text-label-sm " +
+            (t === btn ? "bg-surface-container-lowest text-primary shadow-sm font-bold" : "text-on-surface-variant");
+        });
+        if (lbl) lbl.textContent = c.label;
+        if (inp) { inp.value = c.val; inp.style.textTransform = c.up ? "uppercase" : "none"; }
+        if (previewSub) previewSub.textContent = c.sub;
+        verifyMsg = c.msg;
+      }
+      tabBtns.forEach(function (btn) {
+        btn.style.cursor = "pointer";
+        btn.addEventListener("click", function () { activateTab(btn); });
+      });
+    }
+
     /* 3. Make EVERY remaining interactive control do something sensible —
           including the <div>/<a> cards Stitch marks with active:scale /
           cursor-pointer. Route the payment & records journeys; toast the rest. */
