@@ -237,12 +237,14 @@
         tile("shield", "Insurance", "data-toast='Business Insurance — prototype'") +
         tile("savings", "Settle", "data-toast='Settlements — prototype'") +
         tile("receipt_long", "Reports", "data-toast='GST and Tax Reports — prototype'") +
-        tile("redeem", "Rewards", "data-toast='Rewards and Cashback — prototype'") +
+        tile("redeem", "Rewards", "data-open='openRewards'") +
         tile("speaker", "Devices", "data-open='openDevices'") +
         tile("groups", "Staff", "data-toast='Staff and Roles — prototype'") +
         tile("support_agent", "Help", "data-open='openSupport'") +
         tile("menu_book", "Khata", "data-open='openKhata'") +
         tile("trending_up", "Cash-flow", "data-open='openForecast'") +
+        tile("link", "Pay Link", "data-open='openPaymentLink'") +
+        tile("storefront", "Suppliers", "data-open='openMarketplace'") +
       "</div>";
     var rows =
       row("person", "My Profile", "data-profile") +
@@ -352,6 +354,7 @@
       speed("upi", "bolt", "Instant · UPI", "Free · settles in seconds", false) +
       speed("imps", "account_balance", "Instant · IMPS", "₹5 fee · settles in seconds", true) +
       speed("neft", "schedule", "Same-day · NEFT", "Free · settles by 6 PM", false) +
+      speed("credit", "credit_card", "UPI Credit · pay in 30 days", "₹5,00,000 line · 0% for 30 days", false) +
       "<button id='ps-continue' style='width:100%;height:50px;border:none;border-radius:14px;background:" + C.navy + ";color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;box-shadow:0 8px 20px rgba(0,41,112,.25)'>Continue to review</button>" +
       "<button id='ps-cancel' style='width:100%;height:44px;border:none;background:none;color:" + C.muted + ";font-size:14px;font-weight:600;cursor:pointer;margin-top:2px'>Cancel</button>";
 
@@ -671,6 +674,100 @@
       iCard(C.green, "trending_up", "Cash-flow", "+₹90,000 projected net this month", "View forecast", "data-open='openForecast'") +
       iCard("#8a6d00", "description", "Compliance", "GST filing due in 6 days", "Set reminder", "data-toast='GST reminder set — prototype'");
   }
+
+  /* ---------- Rewards & tier ---------- */
+  function openRewards() {
+    var pct = 84;
+    function perk(ic, t) {
+      return "<div style='display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #eef1f3'>" +
+        "<span class='material-symbols-outlined' style='font-size:20px;color:" + C.green + "'>" + ic + "</span>" +
+        "<span style='font-size:13.5px;color:" + C.ink + ";font-weight:600'>" + t + "</span></div>";
+    }
+    function tier(name, range, state) {
+      var on = state === "current";
+      return "<div style='display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border-radius:12px;margin-bottom:8px;" +
+        "border:1.5px solid " + (on ? C.primary : "#e2e9ef") + ";background:" + (on ? "rgba(0,186,242,.06)" : "#fff") + "'>" +
+        "<div><div style='font-size:14px;font-weight:800;color:" + C.ink + "'>" + name + (on ? " · you" : "") + "</div>" +
+        "<div style='font-size:12px;color:" + C.muted + "'>" + range + "</div></div>" +
+        (state === "next" ? "<span style='font-size:11px;font-weight:700;color:" + C.navy + "'>Next →</span>" :
+         on ? "<span class='material-symbols-outlined' style='color:" + C.primary + "'>verified</span>" : "") + "</div>";
+    }
+    var head =
+      "<div style='background:linear-gradient(135deg,#8a6d00,#d4a017);border-radius:18px;padding:16px;color:#fff;margin-bottom:16px'>" +
+        "<div style='display:flex;justify-content:space-between;align-items:center'>" +
+          "<span style='font-size:11px;font-weight:700;letter-spacing:.07em;opacity:.95'>GOLD MERCHANT</span>" +
+          "<span class='material-symbols-outlined'>workspace_premium</span></div>" +
+        "<div style='font-size:14px;font-weight:700;margin-top:8px'>₹8.4L volume this month</div>" +
+        "<div style='height:8px;border-radius:99px;background:rgba(255,255,255,.3);margin-top:10px;overflow:hidden'>" +
+          "<div style='height:100%;width:" + pct + "%;background:#fff;border-radius:99px'></div></div>" +
+        "<div style='font-size:12px;opacity:.95;margin-top:8px'>₹1.6L more to <b>Platinum</b> — unlock T+0 settlement</div></div>";
+    var html =
+      "<div style='font-size:18px;font-weight:800;margin:0 2px 14px'>Rewards &amp; Tier</div>" + head +
+      "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + ";margin:2px 2px 2px'>YOUR GOLD PERKS</div>" +
+      "<div style='margin-bottom:16px'>" + perk("percent", "Reduced card MDR · 0% on UPI") + perk("bolt", "Same-day settlement") + perk("support_agent", "Priority human support") + "</div>" +
+      "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + ";margin:2px 2px 8px'>TIER LADDER</div>" +
+      tier("Silver", "Up to ₹5L / month", "") + tier("Gold", "₹5L – ₹10L / month", "current") + tier("Platinum", "₹10L+ / month", "next") +
+      "<div style='display:flex;align-items:center;justify-content:space-between;background:#f1f4f6;border-radius:14px;padding:13px 15px;margin:14px 0 10px'>" +
+        "<div><div style='font-size:12px;color:" + C.muted + "'>Cashback earned</div><div style='font-size:18px;font-weight:800;color:" + C.ink + "'>₹2,340</div></div>" +
+        "<button data-toast='Cashback redeemed to settlement account — prototype' style='height:40px;padding:0 18px;border:none;border-radius:11px;background:" + C.navy + ";color:#fff;font-size:14px;font-weight:700;cursor:pointer'>Redeem</button></div>";
+    openSheet(html);
+  }
+  window.openRewards = openRewards;
+
+  /* ---------- Payment Link (sell without a website) ---------- */
+  function openPaymentLink() {
+    var methods = ["UPI", "Cards", "Netbanking", "Wallets", "EMI"].map(function (m) {
+      return "<span style='font-size:11px;font-weight:700;color:" + C.navy + ";background:rgba(0,41,112,.07);padding:5px 11px;border-radius:99px'>" + m + "</span>";
+    }).join("");
+    var html =
+      "<div style='font-size:18px;font-weight:800;margin:0 2px 2px'>Payment Link</div>" +
+      "<div style='font-size:12px;color:" + C.muted + ";margin:0 2px 14px'>Sell without a website — share a link, get paid</div>" +
+      "<div style='background:linear-gradient(135deg," + C.navy + "," + C.primary + ");border-radius:16px;padding:15px 16px;color:#fff;margin-bottom:14px'>" +
+        "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;opacity:.9'>YOUR PAYMENT LINK</div>" +
+        "<div style='display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px'>" +
+          "<span style='font-size:15px;font-weight:800'>paytm.me/sharmastore</span>" +
+          "<span class='material-symbols-outlined' style='font-size:20px'>link</span></div>" +
+        "<div style='font-size:12px;opacity:.9;margin-top:4px'>Live · accepts payments 24×7</div></div>" +
+      "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + ";margin:2px 2px 8px'>ACCEPTS ALL METHODS</div>" +
+      "<div style='display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px'>" + methods + "</div>" +
+      "<button data-toast='Payment link shared on WhatsApp — prototype' style='width:100%;height:48px;border:none;border-radius:13px;background:#16a34a;color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px'>Share on WhatsApp</button>" +
+      "<button data-toast='Link copied to clipboard — prototype' style='width:100%;height:44px;border:1.5px solid #e2e9ef;border-radius:13px;background:#fff;color:" + C.navy + ";font-size:14px;font-weight:700;cursor:pointer;margin-top:8px'>Copy link</button>" +
+      "<button data-toast='New payment link created — prototype' style='width:100%;height:44px;border:none;background:none;color:" + C.navy + ";font-size:14px;font-weight:700;cursor:pointer;margin-top:2px'>+ Create link for a specific amount</button>";
+    openSheet(html);
+  }
+  window.openPaymentLink = openPaymentLink;
+
+  /* ---------- Supplier marketplace ---------- */
+  function openMarketplace() {
+    var suppliers = [
+      ["Bharat Agro Foods", "Wholesale grains · 2.1 km", "4.8", "230", true],
+      ["Shree Packaging Co.", "Boxes & packaging · 3.4 km", "4.6", "148", true],
+      ["Kisan Fresh Produce", "Fruits & vegetables · 1.2 km", "4.4", "96", false],
+      ["Metro Cash & Carry", "General wholesale · 5.0 km", "4.7", "512", true]
+    ];
+    var chips = ["Nearby", "Top rated", "Verified"].map(function (c, i) {
+      var on = i === 0;
+      return "<button data-toast='Filter: " + c + " — prototype' style='padding:7px 14px;border-radius:99px;border:1px solid " + (on ? C.primary : "#e2e9ef") + ";background:" + (on ? "rgba(0,186,242,.08)" : "#fff") + ";color:" + (on ? C.navy : C.muted) + ";font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap'>" + c + "</button>";
+    }).join("");
+    var rows = suppliers.map(function (s) {
+      var verified = s[4] ? "<span style='display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;color:" + C.green + "'><span class='material-symbols-outlined' style='font-size:13px'>verified</span>Verified</span>" : "";
+      return "<div style='display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid #eef1f3'>" +
+        "<div style='width:40px;height:40px;border-radius:12px;background:#f1f4f6;display:flex;align-items:center;justify-content:center;font-weight:800;color:" + C.navy + ";flex-shrink:0'>" + s[0].charAt(0) + "</div>" +
+        "<div style='flex:1;min-width:0'><div style='font-size:14px;font-weight:700;color:" + C.ink + ";display:flex;align-items:center;gap:7px'>" + s[0] + " " + verified + "</div>" +
+        "<div style='font-size:12px;color:" + C.muted + "'>" + s[1] + "</div>" +
+        "<div style='font-size:12px;color:#8a6d00;font-weight:700;margin-top:1px'>★ " + s[2] + " <span style='color:" + C.muted + ";font-weight:500'>(" + s[3] + ")</span></div></div>" +
+        "<button data-toast=\"Connect request sent to " + s[0] + " — prototype\" style='height:34px;padding:0 14px;border:1.5px solid " + C.navy + ";border-radius:10px;background:#fff;color:" + C.navy + ";font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0'>Connect</button></div>";
+    }).join("");
+    var html =
+      "<div style='font-size:18px;font-weight:800;margin:0 2px 2px'>Supplier Marketplace</div>" +
+      "<div style='font-size:12px;color:" + C.muted + ";margin:0 2px 12px'>Discover verified suppliers near you</div>" +
+      "<div style='display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px'>" + chips + "</div>" +
+      "<div style='margin-bottom:14px'>" + rows + "</div>" +
+      "<button data-toast='Opening merchant community — prototype' style='width:100%;height:46px;border:1.5px solid #e2e9ef;border-radius:13px;background:#fff;color:" + C.navy + ";font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px'>" +
+        "<span class='material-symbols-outlined' style='font-size:19px'>forum</span>Merchant community · 4.2k discussions</button>";
+    openSheet(html);
+  }
+  window.openMarketplace = openMarketplace;
 
   /* ---------- Wire everything once the DOM is ready ---------- */
   function ready(fn) {
