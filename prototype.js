@@ -44,6 +44,31 @@
   /* Alias the common Stitch toast name if the page never defined one */
   if (typeof window.showToast !== "function") window.showToast = toast;
 
+  /* Relative links between the sibling screen folders */
+  var REL = {
+    home:     "../home_paytm_business_360/code.html",
+    pay:      "../pay_hub_supplier_payments/code.html",
+    security: "../security_check_high_value_payment/code.html",
+    success:  "../payment_success_digital_receipt/code.html",
+    records:  "../business_records_reconciliation/code.html"
+  };
+
+  /* Neutralise in-page handlers that depend on modals / back-ends we don't
+     ship, so their buttons give clean prototype feedback instead of failing. */
+  window.triggerPay      = function () { location.href = REL.security; };
+  window.viewDetails     = function (n) { toast((n ? n + " " : "") + "bill copy — prototype"); };
+  window.saveSupplier    = function () { toast("Supplier saved — prototype"); };
+  window.simulateGstLookup = function () { toast("Verifying GSTIN — prototype"); };
+
+  /* Clean visible label for an element (drops icon ligatures / svg) */
+  function labelText(el) {
+    var a = el.getAttribute("aria-label");
+    if (a) return a;
+    var c = el.cloneNode(true);
+    c.querySelectorAll(".material-symbols-outlined, svg").forEach(function (n) { n.remove(); });
+    return (c.textContent || "").trim().replace(/\s+/g, " ");
+  }
+
   /* ---------- Dummy QR code (deterministic SVG) ---------- */
   function qrSvg() {
     var n = 25, cell = 8, pad = 4, size = n * cell + pad * 2;
@@ -320,26 +345,39 @@
       });
     }
 
-    /* 3. Catch-all: no dead buttons. Any button without its own action
-          gives a friendly prototype confirmation instead of doing nothing. */
-    document.querySelectorAll("button").forEach(function (btn) {
-      if (btn.dataset.proto) return;
-      if (btn.getAttribute("onclick")) return;          /* already has a handler */
-      if (btn.closest("a[href]")) return;               /* it's inside a real link */
-      if (btn.id === "pay-button") return;              /* wired to navigate */
-      btn.dataset.proto = "1";
-      btn.style.cursor = "pointer";
-      btn.addEventListener("click", function () {
-        var label = btn.getAttribute("aria-label");
-        if (!label) {
-          /* read text without the material-symbol icon ligatures */
-          var clone = btn.cloneNode(true);
-          clone.querySelectorAll(".material-symbols-outlined, svg").forEach(function (n) { n.remove(); });
-          label = (clone.textContent || "").trim().replace(/\s+/g, " ");
-        }
-        if (!label) label = "Action";
-        if (label.length > 34) label = label.slice(0, 34) + "…";
-        toast(label + " — prototype");
+    /* 3. Make EVERY remaining interactive control do something sensible —
+          including the <div>/<a> cards Stitch marks with active:scale /
+          cursor-pointer. Route the payment & records journeys; toast the rest. */
+    function go(url) { return function () { location.href = url; }; }
+    function intent(t) {
+      t = t.toLowerCase();
+      if (/\bmy qr\b|scan any|scan to|show qr|\bqr\b|^collect$/.test(t)) return showQR;
+      if (/view ledger|view all.*record/.test(t)) return go(REL.records);
+      if (/new payment/.test(t)) return go(REL.pay);
+      if (/add .*supplier|new supplier/.test(t)) return function () { toast("Add supplier form — prototype"); };
+      if (/confirm.*pay/.test(t)) return go(REL.success);
+      if (/pay again|pay now|\bproceed\b|make payment|^pay\b|pay ₹|pay bill|supplier|employee|salar|payroll|\bbill|\brent\b|inventory|utilit|other upi|payout|quick transfer/.test(t))
+        return go(REL.security);
+      return null;
+    }
+    var SEL = 'button, a[href], [role="button"], [class*="active:scale"], [class*="cursor-pointer"]';
+    document.querySelectorAll(SEL).forEach(function (el) {
+      if (el.dataset.proto) return;                     /* already wired */
+      if (el.id === "pay-button") return;               /* wired to success */
+      if (el.hasAttribute("onclick")) return;           /* keep its own handler */
+      if (el.closest("[data-path]")) return;            /* bottom-nav, handled */
+      el.dataset.proto = "1";
+      el.style.cursor = "pointer";
+      var label = labelText(el) || "Action";
+      var handler = intent(label);
+      el.addEventListener("click", function (e) {
+        /* ignore clicks that actually belong to a nested interactive child */
+        var owner = e.target.closest(SEL + ", [onclick]");
+        if (owner && owner !== el) return;
+        e.preventDefault();
+        if (handler) { handler(); return; }
+        var msg = label.length > 34 ? label.slice(0, 34) + "…" : label;
+        toast(msg + " — prototype");
       });
     });
   });
