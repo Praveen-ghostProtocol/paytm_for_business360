@@ -182,6 +182,14 @@
     card.querySelectorAll("[data-profile]").forEach(function (el) {
       el.addEventListener("click", function () { close(); setTimeout(openProfile, 200); });
     });
+    card.querySelectorAll("[data-open]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var fn = window[el.getAttribute("data-open")];
+        var arg = el.getAttribute("data-arg") || undefined;
+        close();
+        if (typeof fn === "function") setTimeout(function () { fn(arg); }, 180);
+      });
+    });
     document.addEventListener("keydown", function esc(e) {
       if (e.key === "Escape") { close(); document.removeEventListener("keydown", esc); }
     });
@@ -230,9 +238,9 @@
         tile("savings", "Settle", "data-toast='Settlements — prototype'") +
         tile("receipt_long", "Reports", "data-toast='GST and Tax Reports — prototype'") +
         tile("redeem", "Rewards", "data-toast='Rewards and Cashback — prototype'") +
-        tile("speaker", "Devices", "data-toast='Soundbox and Devices — prototype'") +
+        tile("speaker", "Devices", "data-open='openDevices'") +
         tile("groups", "Staff", "data-toast='Staff and Roles — prototype'") +
-        tile("support_agent", "Help", "data-toast='Help and Support — prototype'") +
+        tile("support_agent", "Help", "data-open='openSupport'") +
       "</div>";
     var rows =
       row("person", "My Profile", "data-profile") +
@@ -281,7 +289,7 @@
       row("account_balance", "Bank &amp; Settlement", "data-toast='Bank and Settlement — prototype'") +
       row("account_balance_wallet", "Pre-approved Loans", "data-loan") +
       row("language", "Language", "data-toast='Language — prototype'") +
-      row("support_agent", "Help &amp; Support", "data-toast='Help and Support — prototype'") +
+      row("support_agent", "Help &amp; Support", "data-open='openSupport'") +
       row("logout", "Log Out", "data-toast='Logged out — prototype'", "#ba1a1a");
     openSheet(head + kyc + rows);
   }
@@ -291,6 +299,10 @@
   function fmtAmt(n) {
     n = String(n).replace(/[^\d]/g, "");
     return n.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+  function money(n) {
+    var p = (Math.round(n * 100) / 100).toFixed(2).split(".");
+    return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + p[1];
   }
   function openPaySheet(recipient, amount) {
     if (document.getElementById("proto-pay")) return;
@@ -389,6 +401,149 @@
     });
   }
   window.openPaySheet = openPaySheet;
+
+  /* ---------- Itemised fee / settlement breakdown ---------- */
+  function openTxnSheet(name, amtText, isCredit) {
+    name = name || "Transaction";
+    var num = parseInt(String(amtText).replace(/[^\d]/g, ""), 10) || 0;
+    var lines, totalK, totalV, note;
+    if (isCredit) {
+      lines = [["Gross amount received", "₹" + money(num)],
+               ["Platform / MDR fee (UPI)", "₹0.00"],
+               ["GST on fee", "₹0.00"]];
+      totalK = "Net settled to bank"; totalV = "₹" + money(num);
+      note = "Zero MDR on UPI collections — credited in full";
+    } else {
+      lines = [["Transfer amount", "₹" + money(num)],
+               ["Instant IMPS charge", "₹5.00"],
+               ["GST on charge (18%)", "₹0.90"]];
+      totalK = "Total debited"; totalV = "₹" + money(num + 5.90);
+      note = "Itemised fees on every transaction — no hidden charges";
+    }
+    var rowsHtml = lines.map(function (l) {
+      return "<div style='display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e3e8ec'>" +
+        "<span style='font-size:13px;color:" + C.muted + "'>" + l[0] + "</span>" +
+        "<span style='font-size:14px;font-weight:600;color:" + C.ink + "'>" + l[1] + "</span></div>";
+    }).join("");
+    var html =
+      "<div style='display:flex;justify-content:space-between;align-items:start;margin:0 2px 2px'>" +
+        "<div style='font-size:18px;font-weight:800'>" + (isCredit ? "Settlement breakdown" : "Payment breakdown") + "</div>" +
+        "<span style='font-size:10px;font-weight:700;letter-spacing:.05em;color:" + C.green + ";background:rgba(22,163,74,.12);padding:5px 9px;border-radius:99px'>100% TRANSPARENT</span></div>" +
+      "<div style='font-size:12px;color:" + C.muted + ";margin:0 2px 14px'>" + name + "</div>" +
+      "<div style='background:#f1f4f6;border-radius:16px;padding:6px 16px;margin-bottom:12px'>" + rowsHtml +
+        "<div style='display:flex;justify-content:space-between;padding:11px 0 8px'>" +
+          "<span style='font-size:14px;font-weight:800;color:" + C.ink + "'>" + totalK + "</span>" +
+          "<span style='font-size:16px;font-weight:800;color:" + C.ink + "'>" + totalV + "</span></div></div>" +
+      "<div style='display:flex;align-items:center;gap:8px;background:rgba(22,163,74,.10);border-radius:12px;padding:11px 13px;margin-bottom:14px'>" +
+        "<span class='material-symbols-outlined' style='color:" + C.green + ";font-size:20px'>verified</span>" +
+        "<span style='font-size:12px;color:#0f5132;font-weight:600'>" + note + "</span></div>" +
+      "<button data-open='openSupport' style='width:100%;height:46px;border:1.5px solid #e2e9ef;border-radius:12px;background:#fff;color:" + C.navy + ";font-size:14px;font-weight:700;cursor:pointer'>Report an issue with this payment</button>" +
+      "<button data-close style='width:100%;height:42px;border:none;background:none;color:" + C.muted + ";font-size:14px;font-weight:600;cursor:pointer;margin-top:2px'>Close</button>";
+    openSheet(html);
+  }
+  window.openTxnSheet = openTxnSheet;
+
+  /* ---------- Support hub + human dispute / hold flow ---------- */
+  function openSupport() {
+    var priority =
+      "<div style='background:linear-gradient(135deg," + C.navy + "," + C.primary + ");border-radius:18px;padding:16px;color:#fff;margin-bottom:16px'>" +
+        "<div style='font-size:11px;font-weight:700;letter-spacing:.07em;opacity:.9'>MONEY STUCK OR ON HOLD?</div>" +
+        "<div style='font-size:17px;font-weight:800;margin-top:4px'>Talk to a human in under 30 min</div>" +
+        "<div style='font-size:12px;opacity:.92;margin-top:2px'>Priority queue · no chatbots · avg callback 12 min</div>" +
+        "<button data-open='openDisputeCase' data-arg=\"Funds on hold / settlement delayed\" style='margin-top:13px;width:100%;height:44px;border:none;border-radius:11px;background:#fff;color:" + C.navy + ";font-size:14px;font-weight:700;cursor:pointer'>Raise a priority dispute</button></div>";
+    var reasons = [
+      ["schedule", "Settlement delayed / not received"],
+      ["report", "Unexpected or surprise charge"],
+      ["error", "Failed or stuck payment"],
+      ["currency_rupee", "Refund not received"],
+      ["speaker", "Soundbox / device issue"]
+    ].map(function (r) {
+      return row(r[0], r[1], "data-open='openDisputeCase' data-arg=\"" + r[1] + "\"");
+    }).join("");
+    var chat = row("support_agent", "Chat with support (EN / हिंदी / +8 languages)",
+      "data-toast='Connecting you to a support agent — prototype'");
+    openSheet("<div style='font-size:18px;font-weight:800;margin:0 2px 14px'>Help &amp; Support</div>" + priority + reasons + chat);
+  }
+  window.openSupport = openSupport;
+
+  function openDisputeCase(reason) {
+    reason = reason || "General issue";
+    var caseId = "PTMD-58" + (2000 + Math.floor(Math.random() * 800));
+    function step(title, sub, state) {
+      var col = state === "done" ? C.green : (state === "active" ? C.primary : "#c3ccd4");
+      var ic = state === "done" ? "check_circle" : (state === "active" ? "radio_button_checked" : "radio_button_unchecked");
+      return "<div style='display:flex;gap:11px;padding:9px 0'>" +
+        "<span class='material-symbols-outlined' style='font-size:22px;color:" + col + "'>" + ic + "</span>" +
+        "<div><div style='font-size:14px;font-weight:700;color:" + (state === "pending" ? C.muted : C.ink) + "'>" + title + "</div>" +
+        "<div style='font-size:12px;color:" + C.muted + "'>" + sub + "</div></div></div>";
+    }
+    var html =
+      "<div style='text-align:center;padding:6px 0 2px'>" +
+        "<span class='material-symbols-outlined' style='font-size:46px;color:" + C.green + "'>verified_user</span>" +
+        "<div style='font-size:19px;font-weight:800;margin-top:4px'>Dispute raised</div>" +
+        "<div style='font-size:13px;color:" + C.muted + "'>Case #" + caseId + " · Priority · Human-assisted</div></div>" +
+      "<div style='background:#f1f4f6;border-radius:14px;padding:12px 14px;margin:14px 0'>" +
+        "<div style='font-size:11px;font-weight:700;letter-spacing:.05em;color:" + C.muted + "'>ISSUE</div>" +
+        "<div style='font-size:14px;font-weight:700;color:" + C.ink + ";margin-top:2px'>" + reason + "</div></div>" +
+      "<div style='display:flex;align-items:center;gap:9px;background:rgba(22,163,74,.10);border-radius:12px;padding:12px 13px;margin-bottom:8px'>" +
+        "<span class='material-symbols-outlined' style='color:" + C.green + ";font-size:22px'>bolt</span>" +
+        "<span style='font-size:12.5px;color:#0f5132;font-weight:600'>A settlement specialist will call you within 30 minutes — a real human, not a bot</span></div>" +
+      "<div style='padding:2px 4px 6px'>" +
+        step("Dispute raised", "Just now", "done") +
+        step("Assigned to a specialist", "Priority queue · avg 12 min", "active") +
+        step("Resolution & callback", "Within 30 minutes", "pending") + "</div>" +
+      "<button data-toast='A specialist will call you shortly — prototype' style='width:100%;height:48px;border:none;border-radius:13px;background:" + C.navy + ";color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px'>Call me now</button>" +
+      "<button data-close style='width:100%;height:42px;border:none;background:none;color:" + C.muted + ";font-size:14px;font-weight:600;cursor:pointer'>Track in Support</button>";
+    openSheet(html);
+  }
+  window.openDisputeCase = openDisputeCase;
+
+  /* ---------- Soundbox / device rental ledger + one-tap cancel ---------- */
+  function openDevices() {
+    var device =
+      "<div style='background:linear-gradient(135deg," + C.navy + "," + C.primary + ");border-radius:18px;padding:16px;color:#fff;margin-bottom:14px'>" +
+        "<div style='display:flex;justify-content:space-between;align-items:center'>" +
+          "<div><div style='font-size:11px;font-weight:700;letter-spacing:.07em;opacity:.9'>PAYTM SOUNDBOX 4.0</div>" +
+          "<div style='font-size:15px;font-weight:800;margin-top:2px'>SN · PTMSB-4471</div></div>" +
+          "<span style='font-size:11px;font-weight:700;background:rgba(255,255,255,.2);padding:5px 10px;border-radius:99px'>ACTIVE</span></div>" +
+        "<div style='font-size:12px;opacity:.9;margin-top:8px'>4G SIM connected · 88% battery</div></div>";
+    var nextCharge =
+      "<div style='display:flex;align-items:center;gap:10px;border:1.5px solid " + C.primary + ";background:rgba(0,186,242,.06);border-radius:14px;padding:12px 14px;margin-bottom:14px'>" +
+        "<span class='material-symbols-outlined' style='color:" + C.primary + ";font-size:22px'>event_upcoming</span>" +
+        "<div><div style='font-size:13px;font-weight:700;color:" + C.ink + "'>Next charge · 1 Oct 2026 · ₹125</div>" +
+        "<div style='font-size:11.5px;color:" + C.muted + "'>Rental ₹125/mo incl. GST · WhatsApp + SMS alert 3 days before</div></div></div>";
+    var ledgerRows = [["Sep 2026", "Paid"], ["Aug 2026", "Paid"], ["Jul 2026", "Paid"], ["Jun 2026", "Paid · setup"]].map(function (m) {
+      return "<div style='display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eef1f3'>" +
+        "<span style='font-size:13px;color:" + C.ink + ";font-weight:600'>" + m[0] + "</span>" +
+        "<span style='display:flex;align-items:center;gap:8px'><span style='font-size:13px;font-weight:700;color:" + C.ink + "'>₹125.00</span>" +
+        "<span style='font-size:11px;font-weight:700;color:" + C.green + ";background:rgba(22,163,74,.12);padding:3px 8px;border-radius:99px'>" + m[1] + "</span></span></div>";
+    }).join("");
+    var html =
+      "<div style='font-size:18px;font-weight:800;margin:0 2px 14px'>My Devices</div>" + device + nextCharge +
+      "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + ";margin:2px 2px 4px'>RENTAL LEDGER</div>" +
+      "<div style='margin-bottom:14px'>" + ledgerRows + "</div>" +
+      "<button data-open='openCancelDevice' style='width:100%;height:48px;border:1.5px solid #ba1a1a;border-radius:13px;background:#fff;color:#ba1a1a;font-size:15px;font-weight:700;cursor:pointer'>Cancel rental · one tap</button>" +
+      "<button data-toast='Rental invoices downloaded — prototype' style='width:100%;height:44px;border:none;background:none;color:" + C.navy + ";font-size:14px;font-weight:700;cursor:pointer;margin-top:2px'>Download all rental invoices</button>";
+    openSheet(html);
+  }
+  window.openDevices = openDevices;
+
+  function openCancelDevice() {
+    var points = ["Auto-debit stops immediately", "Free return pickup scheduled", "No further charges, ever"].map(function (t) {
+      return "<div style='display:flex;align-items:center;gap:9px;padding:6px 0'><span class='material-symbols-outlined' style='color:" + C.green + ";font-size:19px'>check_circle</span><span style='font-size:13px;color:" + C.ink + "'>" + t + "</span></div>";
+    }).join("");
+    var html =
+      "<div style='font-size:18px;font-weight:800;margin:0 2px 3px'>Cancel Soundbox rental?</div>" +
+      "<div style='font-size:12px;color:" + C.muted + ";margin:0 2px 14px'>No lock-in · cancel anytime</div>" +
+      "<div style='background:#f1f4f6;border-radius:14px;padding:8px 15px;margin-bottom:14px'>" +
+        "<div style='display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e3e8ec'><span style='font-size:13px;color:" + C.muted + "'>Current plan</span><span style='font-size:13px;font-weight:700'>₹125 / month</span></div>" +
+        "<div style='display:flex;justify-content:space-between;padding:7px 0'><span style='font-size:13px;color:" + C.muted + "'>Next charge (1 Oct)</span><span style='font-size:13px;font-weight:700;color:" + C.green + "'>Will be stopped</span></div></div>" +
+      "<div style='padding:0 4px 14px'>" + points + "</div>" +
+      "<button data-toast='Rental cancelled · free pickup scheduled · no further charges — prototype' style='width:100%;height:48px;border:none;border-radius:13px;background:#ba1a1a;color:#fff;font-size:15px;font-weight:700;cursor:pointer'>Confirm cancellation</button>" +
+      "<button data-close style='width:100%;height:44px;border:none;background:none;color:" + C.muted + ";font-size:14px;font-weight:600;cursor:pointer'>Keep my device</button>";
+    openSheet(html);
+  }
+  window.openCancelDevice = openCancelDevice;
 
   /* ---------- Wire everything once the DOM is ready ---------- */
   function ready(fn) {
@@ -491,6 +646,28 @@
       tabBtns.forEach(function (btn) {
         btn.style.cursor = "pointer";
         btn.addEventListener("click", function () { activateTab(btn); });
+      });
+    }
+
+    /* 2c. Records: each transaction opens an itemised settlement breakdown */
+    var recHead = Array.prototype.filter.call(document.querySelectorAll("h2"), function (h) {
+      return /Recent Transactions/i.test(h.textContent);
+    })[0];
+    if (recHead) {
+      var wrap = recHead.closest(".px-margin-mobile") ||
+                 (recHead.parentElement && recHead.parentElement.parentElement) || document.body;
+      var txCards = Array.prototype.filter.call(wrap.querySelectorAll('[class*="bg-surface-container-lowest"]'), function (c) {
+        return /[+\-]₹/.test(c.textContent) && c.querySelector(".font-headline-sm");
+      });
+      txCards.forEach(function (c) {
+        c.dataset.proto = "1";
+        c.style.cursor = "pointer";
+        var nm = c.querySelector(".font-label-lg");
+        var am = c.querySelector(".font-headline-sm");
+        var nameTx = nm ? nm.textContent.trim() : "Transaction";
+        var amtTx = am ? am.textContent.trim() : "";
+        var isCredit = /^\+/.test(amtTx);
+        c.addEventListener("click", function () { openTxnSheet(nameTx, amtTx, isCredit); });
       });
     }
 
