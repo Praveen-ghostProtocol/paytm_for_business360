@@ -238,4 +238,15 @@
       height = canvas.height = canvas.offsetHeight;
     });
   })();
-</script></main></body></html>
+</script></main><script>
+/* Prototype navigation wiring */
+(function(){
+  var back=document.querySelector('button[aria-label="Go back"]');
+  if(back){back.setAttribute('onclick',"location.href='../home_paytm_business_360/code.html'");}
+  document.querySelectorAll('[onclick]').forEach(function(el){
+    var oc=el.getAttribute('onclick')||'';
+    if(oc.indexOf('#records')>-1){el.setAttribute('onclick',"location.href='../business_records_reconciliation/code.html'");}
+    else if(oc.indexOf('#pay')>-1){el.setAttribute('onclick',"location.href='../pay_hub_supplier_payments/code.html'");}
+  });
+})();
+</script></body></html>
