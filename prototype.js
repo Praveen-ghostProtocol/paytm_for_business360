@@ -241,6 +241,8 @@
         tile("speaker", "Devices", "data-open='openDevices'") +
         tile("groups", "Staff", "data-toast='Staff and Roles — prototype'") +
         tile("support_agent", "Help", "data-open='openSupport'") +
+        tile("menu_book", "Khata", "data-open='openKhata'") +
+        tile("trending_up", "Cash-flow", "data-open='openForecast'") +
       "</div>";
     var rows =
       row("person", "My Profile", "data-profile") +
@@ -545,6 +547,131 @@
   }
   window.openCancelDevice = openCancelDevice;
 
+  /* ---------- Tiny inline charts ---------- */
+  function barChart(data, w, h) {
+    w = w || 320; h = h || 130; var pad = 16;
+    var max = Math.max.apply(null, data.map(function (d) { return d.value; })) || 1;
+    var gap = (w - pad * 2) / data.length, bw = gap * 0.58;
+    var body = data.map(function (d, i) {
+      var bh = (h - pad * 2 - 14) * (d.value / max);
+      var x = pad + gap * i + (gap - bw) / 2, y = h - pad - bh - 14;
+      return "<rect x='" + x.toFixed(1) + "' y='" + y.toFixed(1) + "' width='" + bw.toFixed(1) + "' height='" + Math.max(bh, 2).toFixed(1) + "' rx='4' fill='" + (d.color || C.primary) + "'/>" +
+        "<text x='" + (x + bw / 2).toFixed(1) + "' y='" + (h - 4) + "' text-anchor='middle' font-size='9' font-weight='600' fill='" + C.muted + "' font-family='Inter'>" + d.label + "</text>";
+    }).join("");
+    return "<svg viewBox='0 0 " + w + " " + h + "' width='100%' height='" + h + "' xmlns='http://www.w3.org/2000/svg'>" + body + "</svg>";
+  }
+  function lineChart(pts, w, h) {
+    w = w || 320; h = h || 130; var pad = 18;
+    var vals = pts.map(function (p) { return p.v; });
+    var max = Math.max.apply(null, vals), min = Math.min.apply(null, vals), rng = (max - min) || 1, n = pts.length;
+    function xs(i) { return pad + (w - pad * 2) * (i / (n - 1)); }
+    function ys(v) { return pad + (h - pad * 2 - 12) * (1 - (v - min) / rng); }
+    var d = pts.map(function (p, i) { return (i ? "L" : "M") + xs(i).toFixed(1) + " " + ys(p.v).toFixed(1); }).join(" ");
+    var area = d + " L" + xs(n - 1).toFixed(1) + " " + (h - pad - 12) + " L" + xs(0).toFixed(1) + " " + (h - pad - 12) + " Z";
+    var dots = pts.map(function (p, i) { return "<circle cx='" + xs(i).toFixed(1) + "' cy='" + ys(p.v).toFixed(1) + "' r='3' fill='" + C.primary + "'/>"; }).join("");
+    var labels = pts.map(function (p, i) { return "<text x='" + xs(i).toFixed(1) + "' y='" + (h - 3) + "' text-anchor='middle' font-size='9' fill='" + C.muted + "' font-family='Inter'>" + p.label + "</text>"; }).join("");
+    return "<svg viewBox='0 0 " + w + " " + h + "' width='100%' height='" + h + "' xmlns='http://www.w3.org/2000/svg'>" +
+      "<defs><linearGradient id='fg' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='" + C.primary + "' stop-opacity='.25'/><stop offset='1' stop-color='" + C.primary + "' stop-opacity='0'/></linearGradient></defs>" +
+      "<path d='" + area + "' fill='url(#fg)'/><path d='" + d + "' fill='none' stroke='" + C.primary + "' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/>" + dots + labels + "</svg>";
+  }
+
+  /* ---------- Footfall insight ---------- */
+  function openFootfall() {
+    var wk = [["Mon", 120, C.primary], ["Tue", 78, "#ba1a1a"], ["Wed", 132, C.primary], ["Thu", 128, C.primary], ["Fri", 165, C.primary], ["Sat", 190, C.primary], ["Sun", 96, C.primary]]
+      .map(function (d) { return { label: d[0], value: d[1], color: d[2] }; });
+    var html =
+      "<div style='font-size:18px;font-weight:800;margin:0 2px 2px'>Footfall insight</div>" +
+      "<div style='font-size:12px;color:" + C.muted + ";margin:0 2px 12px'>Walk-in customers · weekday average</div>" +
+      "<div style='background:#f1f4f6;border-radius:16px;padding:12px 8px 4px;margin-bottom:12px'>" + barChart(wk, 320, 132) + "</div>" +
+      "<div style='display:flex;align-items:center;gap:9px;background:rgba(186,26,26,.08);border-radius:12px;padding:12px 13px;margin-bottom:10px'>" +
+        "<span class='material-symbols-outlined' style='color:#ba1a1a;font-size:22px'>trending_down</span>" +
+        "<span style='font-size:12.5px;color:#7a1414;font-weight:600'>Tuesday walk-ins are down 20% vs last month — your weakest day</span></div>" +
+      "<div style='display:flex;align-items:center;gap:9px;background:rgba(22,163,74,.10);border-radius:12px;padding:12px 13px;margin-bottom:14px'>" +
+        "<span class='material-symbols-outlined' style='color:" + C.green + ";font-size:22px'>lightbulb</span>" +
+        "<span style='font-size:12.5px;color:#0f5132;font-weight:600'>Tip: run a Tuesday combo — Tue shoppers spend ₹340 on average</span></div>" +
+      "<button data-toast='Tuesday offer created · customers notified on WhatsApp — prototype' style='width:100%;height:48px;border:none;border-radius:13px;background:" + C.navy + ";color:#fff;font-size:15px;font-weight:700;cursor:pointer'>Create Tuesday offer</button>" +
+      "<button data-close style='width:100%;height:42px;border:none;background:none;color:" + C.muted + ";font-size:14px;font-weight:600;cursor:pointer'>Close</button>";
+    openSheet(html);
+  }
+  window.openFootfall = openFootfall;
+
+  /* ---------- Business Khata (credit ledger) ---------- */
+  function openKhata() {
+    var customers = [
+      ["Rajesh Kirana Store", "Last paid 12 days ago", 18200, ""],
+      ["Anita General Stores", "Due in 3 days", 9800, ""],
+      ["Mohan Traders", "Payment overdue", 8500, "od"],
+      ["Priya Textiles", "Due today", 7200, "due"],
+      ["Verma Brothers", "Last paid 20 days ago", 4800, ""]
+    ];
+    var total = customers.reduce(function (s, c) { return s + c[2]; }, 0);
+    var rows = customers.map(function (c) {
+      var badge = c[3] === "od" ? "<span style='font-size:10px;font-weight:700;color:#ba1a1a;background:rgba(186,26,26,.1);padding:2px 7px;border-radius:99px'>Overdue</span>" :
+                  c[3] === "due" ? "<span style='font-size:10px;font-weight:700;color:#8a6d00;background:rgba(245,190,0,.16);padding:2px 7px;border-radius:99px'>Due today</span>" : "";
+      return "<div style='display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid #eef1f3'>" +
+        "<div style='width:38px;height:38px;border-radius:11px;background:#f1f4f6;display:flex;align-items:center;justify-content:center;font-weight:800;color:" + C.navy + ";flex-shrink:0'>" + c[0].charAt(0) + "</div>" +
+        "<div style='flex:1;min-width:0'><div style='font-size:14px;font-weight:700;color:" + C.ink + ";display:flex;align-items:center;gap:6px'>" + c[0] + " " + badge + "</div>" +
+        "<div style='font-size:12px;color:" + C.muted + "'>" + c[1] + "</div></div>" +
+        "<div style='text-align:right;flex-shrink:0'><div style='font-size:14px;font-weight:800;color:" + C.ink + "'>₹" + fmtAmt(c[2]) + "</div>" +
+        "<button data-toast=\"WhatsApp reminder sent to " + c[0] + " — prototype\" style='font-size:11px;font-weight:700;color:" + C.green + ";background:none;border:none;cursor:pointer;padding:2px 0'>Remind →</button></div></div>";
+    }).join("");
+    var summary = "<div style='background:linear-gradient(135deg," + C.navy + "," + C.primary + ");border-radius:18px;padding:16px;color:#fff;margin-bottom:14px'>" +
+      "<div style='font-size:11px;font-weight:700;letter-spacing:.07em;opacity:.9'>YOU'LL RECEIVE</div>" +
+      "<div style='font-size:28px;font-weight:800;margin-top:4px'>₹" + fmtAmt(total) + "</div>" +
+      "<div style='font-size:12px;opacity:.92;margin-top:2px'>from " + customers.length + " credit customers</div></div>";
+    var html = "<div style='font-size:18px;font-weight:800;margin:0 2px 14px'>Business Khata</div>" + summary +
+      "<div style='font-size:11px;font-weight:700;letter-spacing:.06em;color:" + C.muted + ";margin:2px 2px 0'>CUSTOMERS WHO OWE YOU</div>" +
+      "<div style='margin-bottom:14px'>" + rows + "</div>" +
+      "<button data-toast='WhatsApp reminders sent to all 5 customers — prototype' style='width:100%;height:48px;border:none;border-radius:13px;background:" + C.navy + ";color:#fff;font-size:15px;font-weight:700;cursor:pointer'>Send reminders to all · WhatsApp</button>" +
+      "<button data-toast='Add khata entry — prototype' style='width:100%;height:44px;border:1.5px solid #e2e9ef;border-radius:13px;background:#fff;color:" + C.navy + ";font-size:14px;font-weight:700;cursor:pointer;margin-top:8px'>+ Add khata entry</button>";
+    openSheet(html);
+  }
+  window.openKhata = openKhata;
+
+  /* ---------- Cash-flow forecast ---------- */
+  function openForecast() {
+    var pts = [{ label: "Now", v: 82 }, { label: "Wk 1", v: 105 }, { label: "Wk 2", v: 128 }, { label: "Wk 3", v: 90 }, { label: "Wk 4", v: 140 }];
+    function stat(k, v, col) {
+      return "<div style='display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e3e8ec'>" +
+        "<span style='font-size:13px;color:" + C.muted + "'>" + k + "</span>" +
+        "<span style='font-size:14px;font-weight:700;color:" + (col || C.ink) + "'>" + v + "</span></div>";
+    }
+    var html =
+      "<div style='display:flex;justify-content:space-between;align-items:start;margin:0 2px 2px'>" +
+        "<div style='font-size:18px;font-weight:800'>Cash-flow forecast</div>" +
+        "<span style='font-size:10px;font-weight:700;letter-spacing:.05em;color:" + C.navy + ";background:rgba(0,41,112,.08);padding:5px 9px;border-radius:99px'>AI PROJECTED</span></div>" +
+      "<div style='font-size:12px;color:" + C.muted + ";margin:0 2px 12px'>Projected balance · next 30 days</div>" +
+      "<div style='background:#f1f4f6;border-radius:16px;padding:10px 8px 4px;margin-bottom:12px'>" + lineChart(pts, 320, 130) + "</div>" +
+      "<div style='background:#f1f4f6;border-radius:16px;padding:4px 16px;margin-bottom:12px'>" +
+        stat("Projected inflow", "₹4,10,000") +
+        stat("Projected outflow", "₹3,20,000") +
+        stat("Net position", "+₹90,000", C.green) +
+        stat("Lowest balance (Wk 3)", "₹90,000") +
+      "</div>" +
+      "<div style='display:flex;align-items:center;gap:9px;background:rgba(22,163,74,.10);border-radius:12px;padding:12px 13px;margin-bottom:14px'>" +
+        "<span class='material-symbols-outlined' style='color:" + C.green + ";font-size:22px'>check_circle</span>" +
+        "<span style='font-size:12.5px;color:#0f5132;font-weight:600'>Payroll ₹62,000 due 30 Sep — projected balance ₹1.2L, fully covered</span></div>" +
+      "<button data-toast='Statement imported · 142 transactions synced — prototype' style='width:100%;height:48px;border:none;border-radius:13px;background:" + C.navy + ";color:#fff;font-size:15px;font-weight:700;cursor:pointer'>Import bank statement (Excel)</button>" +
+      "<button data-toast='Bank linked · live balance sync on — prototype' style='width:100%;height:44px;border:1.5px solid #e2e9ef;border-radius:13px;background:#fff;color:" + C.navy + ";font-size:14px;font-weight:700;cursor:pointer;margin-top:8px'>Link bank for live sync</button>";
+    openSheet(html);
+  }
+  window.openForecast = openForecast;
+
+  /* ---------- Home insight cards ---------- */
+  function iCard(accent, icon, tag, title, cta, openAttr) {
+    return "<div " + openAttr + " style='min-width:212px;max-width:212px;background:#fff;border:1px solid #e2e9ef;border-left:4px solid " + accent + ";border-radius:14px;padding:12px 13px;cursor:pointer;box-shadow:0 2px 8px rgba(0,41,112,.05)'>" +
+      "<div style='display:flex;align-items:center;gap:6px;margin-bottom:6px'><span class='material-symbols-outlined' style='font-size:18px;color:" + accent + "'>" + icon + "</span>" +
+      "<span style='font-size:10px;font-weight:700;letter-spacing:.05em;color:" + C.muted + ";text-transform:uppercase'>" + tag + "</span></div>" +
+      "<div style='font-size:13px;font-weight:700;color:" + C.ink + ";line-height:1.3;min-height:34px'>" + title + "</div>" +
+      "<div style='font-size:12px;font-weight:700;color:" + accent + ";margin-top:7px'>" + cta + " →</div></div>";
+  }
+  function insightCardsHtml() {
+    return iCard("#ba1a1a", "trending_down", "Footfall", "Tuesday walk-ins down 20% vs last month", "See why", "data-open='openFootfall'") +
+      iCard(C.navy, "account_balance_wallet", "Receivables", "₹48,500 owed by 5 credit customers", "Open Khata", "data-open='openKhata'") +
+      iCard(C.green, "trending_up", "Cash-flow", "+₹90,000 projected net this month", "View forecast", "data-open='openForecast'") +
+      iCard("#8a6d00", "description", "Compliance", "GST filing due in 6 days", "Set reminder", "data-toast='GST reminder set — prototype'");
+  }
+
   /* ---------- Wire everything once the DOM is ready ---------- */
   function ready(fn) {
     if (document.readyState !== "loading") fn();
@@ -587,6 +714,30 @@
       target.style.cursor = "pointer";
       target.dataset.proto = "1";
       target.addEventListener("click", function () { openProfile(); });
+    }
+
+    /* 1d. Home: inject proactive "Insights for you" strip */
+    if (document.getElementById("balanceDisplay")) {
+      var mainWrap = document.querySelector("main > div");
+      if (mainWrap) {
+        var block = document.createElement("div");
+        block.style.cssText = "display:flex;flex-direction:column;gap:8px;";
+        block.innerHTML =
+          "<div style='display:flex;align-items:center;gap:6px;padding:0 2px'>" +
+            "<span class='material-symbols-outlined' style='font-size:18px;color:" + C.navy + "'>auto_awesome</span>" +
+            "<span style='font-size:13px;font-weight:800;color:" + C.ink + ";font-family:Inter,sans-serif'>Insights for you</span></div>" +
+          "<div style='display:flex;gap:10px;overflow-x:auto;padding-bottom:2px'>" + insightCardsHtml() + "</div>";
+        var anchor = mainWrap.children[1] || null;
+        mainWrap.insertBefore(block, anchor);
+        block.querySelectorAll("[data-open]").forEach(function (el) {
+          el.dataset.proto = "1";
+          el.addEventListener("click", function () { var fn = window[el.getAttribute("data-open")]; if (fn) fn(); });
+        });
+        block.querySelectorAll("[data-toast]").forEach(function (el) {
+          el.dataset.proto = "1";
+          el.addEventListener("click", function () { toast(el.getAttribute("data-toast")); });
+        });
+      }
     }
 
     /* 2. Balance eye toggle (Home) */
